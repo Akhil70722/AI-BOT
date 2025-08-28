@@ -36,11 +36,12 @@ except ImportError:
         USE_VERTEX_AI = False
         USE_GOOGLE_AI = False
 
+load_dotenv = True
 # ---------- CONFIG ----------
 PORT = 8765
 LOG_FILE = "chat_log.csv"
 AUDIO_LOG_DIR = "audio_logs"
-GEMINI_API_KEY = "AIzaSyAnYG9ri4f9MHtNhnCVXjmBHBEvXwREhZE"  # Your API key from Google AI Studio
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')  # Your API key from Google AI Studio
 # Prefer faster Flash model; will fall back if unavailable
 PREFERRED_GEMINI_MODELS = [
     "gemini-2.5-flash",

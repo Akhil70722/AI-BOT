@@ -291,7 +291,7 @@
 
       // Backend history (best effort)
       try {
-        const res = await fetch('http://127.0.0.1:8080/chat_history', { cache: 'no-store' });
+        const res = await fetch('http://127.0.0.1:8081/chat_history', { cache: 'no-store' });
         if (res.ok) {
           const history = await res.json();
           history.forEach(row => {
@@ -334,33 +334,46 @@
         ws.onmessage = function(event) {
           removeTypingIndicator();
           
+          console.log("Raw message received:", event.data);
+          
           try {
             const data = JSON.parse(event.data);
+            console.log("Parsed data:", data);
+            
             if (data.type === 'session' && data.session_id) {
               sessionId = data.session_id;
               document.getElementById("sessionId").textContent = sessionId;
+              console.log("Session ID received:", sessionId);
               // Do not show session handshake as a chat message
               return;
             }
-            if (data.content) {
+            
+            if (data.type === "text" && data.content) {
+              console.log("Adding text message:", data.content);
+              addMessage(data.content, "bot");
+            } else if (data.content) {
+              console.log("Adding content message:", data.content);
               addMessage(data.content, "bot");
             } else if (data.type === "text") {
+              console.log("Adding text type message:", data);
               addMessage(String(data), "bot");
             } else {
+              console.log("Adding fallback message:", data);
               addMessage(JSON.stringify(data), "bot");
             }
+            
             if (data.audio) {
+              console.log("Playing audio response");
               playAudio(data.audio);
             }
             if (data.tts_error) {
               console.error("TTS Error:", data.tts_error);
             }
           } catch (e) {
+            console.error("Error parsing message:", e);
             // Fallback for plain text messages
             addMessage(event.data, "bot");
           }
-          
-          console.log("Received message:", event.data);
         };
         
         ws.onclose = function() {

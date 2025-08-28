@@ -6,3 +6,10 @@ timestamp_iso,session_id,user_message,bot_response,user_audio_file,bot_audio_fil
 2025-08-28T14:52:44.319868,b4f82bd1,who is captain of indian cricket team,Error generating response: The `response.text` quick accessor only works for simple (single-`Part`) text responses. This response is not simple text.Use the `result.parts` accessor or the full `result.candidates[index].content.parts` lookup instead.,N/A,N/A
 2025-08-28T14:52:56.291192,88c16d66,[voice message],Error processing audio: [WinError 2] The system cannot find the file specified,user_audio_88c16d66.wav,N/A
 2025-08-28T15:04:55.830797,9de59c09,who is captain of indian cricket team,<google.generativeai.types.generation_types.GenerateContentResponse object at 0x00000112FF4C3520>,N/A,bot_audio_9de59c09_20250828_150455.wav
+2025-08-28T15:55:41.460316,a628a450,hiii,Hi there! How can I help you today?,N/A,bot_audio_a628a450_20250828_155541.wav
+2025-08-28T15:59:51.306871,0d27ba90,hiii,Hi there! How can I help you today?,N/A,bot_audio_0d27ba90_20250828_155951.wav
+2025-08-28T16:04:28.164197,b97467c5,"Hello, this is a test message",Hello! I received your test message. How can I help you today?,N/A,bot_audio_b97467c5_20250828_160428.wav
+2025-08-28T16:09:18.619191,229b30fe,hiii,Hi there! How can I help you today? 😊,N/A,N/A
+2025-08-28T16:09:27.188812,ee105fa5,what is 1 + 1,1 + 1 = 2,N/A,N/A
+2025-08-28T16:09:35.451294,07114b1d,what is the capital of india,The capital of India is **New Delhi**.,N/A,N/A
+2025-08-28T16:09:59.976129,348d7255,[voice message],Error processing audio: ffmpeg or codecs not found. Please install ffmpeg and restart.,user_audio_348d7255.wav,N/A

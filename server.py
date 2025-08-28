@@ -36,7 +36,13 @@ except ImportError:
         USE_VERTEX_AI = False
         USE_GOOGLE_AI = False
 
-load_dotenv = True
+# Try to load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # ---------- CONFIG ----------
 PORT = 8765
 LOG_FILE = "chat_log.csv"
@@ -49,7 +55,7 @@ PREFERRED_GEMINI_MODELS = [
     "gemini-1.5-flash",
 ]
 # Toggle to disable TTS for faster responses
-ENABLE_TTS = True
+ENABLE_TTS = False  # Set to False to disable automatic audio generation
 # ----------------------------
 
 # Create audio logs directory
@@ -335,17 +341,36 @@ async def handle_connection(websocket):
         try:
             # Parse the message
             if isinstance(message, str):
-                # Handle text message
-                user_msg = message.strip()
-                if not user_msg:
-                    await websocket.send(json.dumps({
-                        "type": "text",
-                        "content": "Please send a non-empty message."
-                    }))
-                    continue
-                
-                # Process text message
-                await process_text_message(websocket, user_msg, session_id)
+                try:
+                    # Try to parse as JSON first (for special commands)
+                    data = json.loads(message)
+                    if data.get("type") == "tts_request" and data.get("text"):
+                        # Handle TTS request
+                        await process_text_message(websocket, data["text"], session_id, enable_tts=True)
+                        continue
+                    elif data.get("type") == "text":
+                        # Handle text message from structured format
+                        user_msg = data.get("content", "").strip()
+                        if not user_msg:
+                            await websocket.send(json.dumps({
+                                "type": "text",
+                                "content": "Please send a non-empty message."
+                            }))
+                            continue
+                        await process_text_message(websocket, user_msg, session_id, enable_tts=False)
+                        continue
+                except json.JSONDecodeError:
+                    # Handle plain text message (backward compatibility)
+                    user_msg = message.strip()
+                    if not user_msg:
+                        await websocket.send(json.dumps({
+                            "type": "text",
+                            "content": "Please send a non-empty message."
+                        }))
+                        continue
+                    
+                    # Process text message without TTS for faster responses
+                    await process_text_message(websocket, user_msg, session_id, enable_tts=False)
                 
             else:
                 # Handle binary audio message
@@ -359,7 +384,7 @@ async def handle_connection(websocket):
                 "content": error_response
             }))
 
-async def process_text_message(websocket, user_msg, session_id):
+async def process_text_message(websocket, user_msg, session_id, enable_tts=False):
     """Process text message and generate response"""
     try:
         bot_text = await gemini_client.generate(user_msg)
@@ -370,9 +395,9 @@ async def process_text_message(websocket, user_msg, session_id):
         if not bot_text:
             bot_text = "I couldn't generate a response. Please try again."
 
-        # Convert text response to speech in a background thread (blocking)
+        # Convert text response to speech in a background thread (blocking) only if requested
         audio_base64, tts_error = (None, None)
-        if ENABLE_TTS:
+        if enable_tts:
             audio_base64, tts_error = await asyncio.to_thread(text_to_speech, bot_text, session_id)
         
         # Get audio filenames for logging
@@ -405,7 +430,8 @@ async def process_text_message(websocket, user_msg, session_id):
             response_data["audio"] = audio_base64
         elif tts_error:
             response_data["tts_error"] = tts_error
-            
+        
+        print(f"Sending response: {response_data}")
         await websocket.send(json.dumps(response_data))
         
     except Exception as e:
@@ -442,7 +468,7 @@ async def process_audio_message(websocket, audio_data, session_id):
             return
         
         # Process the transcribed text
-        await process_text_message(websocket, transcribed_text, session_id)
+        await process_text_message(websocket, transcribed_text, session_id, enable_tts=False)
         
     except Exception as e:
         error_response = f"Error processing audio: {e}"
@@ -475,7 +501,11 @@ async def main():
         print(f"Chat logs will be saved to: {LOG_FILE}")
         print(f"Audio logs will be saved to: {AUDIO_LOG_DIR}/")
         print("Voice features enabled: Speech-to-Text and Text-to-Speech")
-        print(f"Using Gemini API key: {GEMINI_API_KEY[:10]}...")
+        if GEMINI_API_KEY:
+            print(f"Using Gemini API key: {GEMINI_API_KEY[:10]}...")
+        else:
+            print("Warning: GEMINI_API_KEY not set. Please set it in your environment variables.")
+            print("You can get a free API key from: https://makersuite.google.com/app/apikey")
         await asyncio.Future()  # run forever
 
 
@@ -501,9 +531,16 @@ class ChatLogHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
 def start_http_server():
-    httpd = HTTPServer(('127.0.0.1', 8080), ChatLogHandler)
-    print('HTTP server running at http://127.0.0.1:8080/chat_history')
-    httpd.serve_forever()
+    try:
+        httpd = HTTPServer(('127.0.0.1', 8081), ChatLogHandler)
+        print('HTTP server running at http://127.0.0.1:8081/chat_history')
+        httpd.serve_forever()
+    except PermissionError:
+        print('Warning: Port 8081 is not available. HTTP server disabled.')
+        print('You can still use the WebSocket server for chat functionality.')
+    except Exception as e:
+        print(f'Warning: HTTP server failed to start: {e}')
+        print('You can still use the WebSocket server for chat functionality.')
 
 if __name__ == "__main__":
     threading.Thread(target=start_http_server, daemon=True).start()

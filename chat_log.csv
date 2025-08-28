@@ -1,0 +1,8 @@
+timestamp_iso,session_id,user_message,bot_response,user_audio_file,bot_audio_file
+2025-08-28T14:35:13.966266,e6d9a001,what is 2+2,2 + 2 = 4,N/A,N/A
+2025-08-28T14:35:47.763404,4bd6acbd,[voice message],Error processing audio: [WinError 2] The system cannot find the file specified,user_audio_4bd6acbd.wav,N/A
+2025-08-28T14:36:02.009802,f00416f7,what is the capital of india,The capital of India is **New Delhi**.,N/A,N/A
+2025-08-28T14:52:26.955642,a37e3100,who is captain of india,Error generating response: The `response.text` quick accessor only works for simple (single-`Part`) text responses. This response is not simple text.Use the `result.parts` accessor or the full `result.candidates[index].content.parts` lookup instead.,N/A,N/A
+2025-08-28T14:52:44.319868,b4f82bd1,who is captain of indian cricket team,Error generating response: The `response.text` quick accessor only works for simple (single-`Part`) text responses. This response is not simple text.Use the `result.parts` accessor or the full `result.candidates[index].content.parts` lookup instead.,N/A,N/A
+2025-08-28T14:52:56.291192,88c16d66,[voice message],Error processing audio: [WinError 2] The system cannot find the file specified,user_audio_88c16d66.wav,N/A
+2025-08-28T15:04:55.830797,9de59c09,who is captain of indian cricket team,<google.generativeai.types.generation_types.GenerateContentResponse object at 0x00000112FF4C3520>,N/A,bot_audio_9de59c09_20250828_150455.wav

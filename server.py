@@ -21,20 +21,27 @@ import time
 
 # Try different import approaches for Gemini
 try:
-    import google.generativeai as genai
+    from google import genai
     GEMINI_AVAILABLE = True
     USE_GOOGLE_AI = True
+    USE_VERTEX_AI = False
 except ImportError:
     try:
-        import vertexai
-        from vertexai.generative_models import GenerativeModel
+        import google.generativeai as genai
         GEMINI_AVAILABLE = True
-        USE_VERTEX_AI = True
-        USE_GOOGLE_AI = False
-    except ImportError:
-        GEMINI_AVAILABLE = False
+        USE_GOOGLE_AI = True
         USE_VERTEX_AI = False
-        USE_GOOGLE_AI = False
+    except ImportError:
+        try:
+            import vertexai
+            from vertexai.generative_models import GenerativeModel
+            GEMINI_AVAILABLE = True
+            USE_VERTEX_AI = True
+            USE_GOOGLE_AI = False
+        except ImportError:
+            GEMINI_AVAILABLE = False
+            USE_VERTEX_AI = False
+            USE_GOOGLE_AI = False
 
 # Try to load environment variables
 try:
@@ -110,20 +117,34 @@ class GeminiClient:
         self.initialized = False
 
     def _init_blocking(self):
-        genai.configure(api_key=self.api_key)
-        last_error = None
-        for name in self.preferred_models:
-            try:
-                self.model = genai.GenerativeModel(name)
+        try:
+            # Try new google.genai library first
+            if hasattr(genai, 'Client'):
+                # New API
+                self.client = genai.Client(api_key=self.api_key)
+                self.model = None  # Not needed for new API
                 self.initialized = True
-                print(f"Using Gemini model: {name}")
+                print(f"Using new Google GenAI API")
                 return True
-            except Exception as e:
-                last_error = e
-                continue
-        if last_error:
-            raise last_error
-        return False
+            else:
+                # Fallback to old API
+                genai.configure(api_key=self.api_key)
+                last_error = None
+                for name in self.preferred_models:
+                    try:
+                        self.model = genai.GenerativeModel(name)
+                        self.initialized = True
+                        print(f"Using Gemini model: {name}")
+                        return True
+                    except Exception as e:
+                        last_error = e
+                        continue
+                if last_error:
+                    raise last_error
+                return False
+        except Exception as e:
+            print(f"Error initializing Gemini: {e}")
+            return False
 
     async def ensure_initialized(self) -> bool:
         if self.initialized and self.model is not None:
@@ -141,51 +162,122 @@ class GeminiClient:
         if not ok:
             return "Error: Gemini model not initialized. Please check your API key configuration."
         def _gen():
-            cfg = {
-                "candidate_count": 1,
-                "max_output_tokens": self.max_tokens,
-                "temperature": self.temperature,
-                "top_p": 0.95,
-            }
-            resp = self.model.generate_content(prompt, generation_config=cfg)
-            # Robust text extraction: support multi-part responses
-            def extract_text(r) -> str:
-                # 1) Simple accessor
-                t = getattr(r, 'text', None)
-                if isinstance(t, str) and t.strip():
-                    return t
-                # 2) Top-level parts (some SDK versions expose .parts)
-                parts = getattr(r, 'parts', None)
-                if parts:
-                    buf = []
-                    for p in parts:
-                        v = getattr(p, 'text', None)
-                        if isinstance(v, str):
-                            buf.append(v)
-                    if buf:
-                        return "".join(buf)
-                # 3) Candidates -> content.parts
-                candidates = getattr(r, 'candidates', None)
-                if candidates:
-                    for cand in candidates:
-                        content = getattr(cand, 'content', None)
-                        if not content:
-                            continue
-                        cparts = getattr(content, 'parts', None)
-                        if not cparts:
-                            continue
-                        buf = []
-                        for p in cparts:
-                            v = getattr(p, 'text', None)
-                            if isinstance(v, str):
-                                buf.append(v)
-                        if buf:
-                            return "".join(buf)
-                return ""
-            text = extract_text(resp)
-            return text if text else ""
+            try:
+                                # Try new API first
+                if hasattr(self, 'client'):
+                    try:
+                        print(f"Calling new Google GenAI API with prompt: {prompt[:100]}...")
+                        # Try different model names in order of preference
+                        models_to_try = [
+                            "gemini-2.0-flash-exp",
+                            "gemini-2.0-flash",
+                            "gemini-1.5-flash"
+                        ]
+                        
+                        last_error = None
+                        resp = None
+                        for model_name in models_to_try:
+                            try:
+                                print(f"Trying model: {model_name}")
+                                resp = self.client.models.generate_content(
+                                    model=model_name,
+                                    contents=prompt
+                                )
+                                print(f"Successfully used model: {model_name}")
+                                break
+                            except Exception as e:
+                                print(f"Failed with model {model_name}: {e}")
+                                last_error = e
+                                continue
+                        else:
+                            # If all models failed
+                            raise last_error or Exception("All models failed")
+                        
+                        print(f"API response received: {type(resp)}")
+                        print(f"Response attributes: {dir(resp)}")
+                        # New API has simple .text accessor
+                        if hasattr(resp, 'text'):
+                            result = resp.text if resp.text else ""
+                            print(f"Text extracted: {result[:100]}...")
+                            return result
+                        else:
+                            print(f"Response has no 'text' attribute. Full response: {resp}")
+                            return str(resp)
+                    except Exception as e:
+                        print(f"Error calling new Google GenAI API: {e}")
+                        raise e
+                else:
+                    # Fallback to old API
+                    cfg = {
+                        "candidate_count": 1,
+                        "max_output_tokens": self.max_tokens,
+                        "temperature": self.temperature,
+                        "top_p": 0.95,
+                    }
+                    resp = self.model.generate_content(prompt, generation_config=cfg)
+                    
+                    # Debug: Log response structure for troubleshooting
+                    print(f"Response type: {type(resp)}")
+                    print(f"Response attributes: {dir(resp)}")
+                    if hasattr(resp, 'parts'):
+                        print(f"Response has {len(resp.parts)} parts")
+                    if hasattr(resp, 'candidates'):
+                        print(f"Response has {len(resp.candidates)} candidates")
+                    
+                    # Robust text extraction: support multi-part responses
+                    def extract_text(r) -> str:
+                        try:
+                            # 1) Try the new recommended approach: result.parts
+                            parts = getattr(r, 'parts', None)
+                            if parts:
+                                buf = []
+                                for p in parts:
+                                    v = getattr(p, 'text', None)
+                                    if isinstance(v, str):
+                                        buf.append(v)
+                                if buf:
+                                    return "".join(buf)
+                            
+                            # 2) Try candidates -> content.parts (fallback for older responses)
+                            candidates = getattr(r, 'candidates', None)
+                            if candidates:
+                                for cand in candidates:
+                                    content = getattr(cand, 'content', None)
+                                    if not content:
+                                        continue
+                                    cparts = getattr(content, 'parts', None)
+                                    if not cparts:
+                                        continue
+                                    buf = []
+                                    for p in cparts:
+                                        v = getattr(p, 'text', None)
+                                        if isinstance(v, str):
+                                            buf.append(v)
+                                    if buf:
+                                        return "".join(buf)
+                            
+                            # 3) Try the old .text accessor (for backward compatibility)
+                            t = getattr(r, 'text', None)
+                            if isinstance(t, str) and t.strip():
+                                return t
+                            
+                            # 4) If all else fails, try to get any text from the response object
+                            response_str = str(r)
+                            if response_str and response_str != "None":
+                                return response_str
+                            
+                            return "No text content found in response"
+                            
+                        except Exception as e:
+                            print(f"Error extracting text from response: {e}")
+                            return f"Error extracting response: {e}"
+                    text = extract_text(resp)
+                    return text if text else ""
+            except Exception as e:
+                print(f"Error in text generation: {e}")
+                return f"Error generating response: {e}"
         try:
-            return await asyncio.wait_for(asyncio.to_thread(_gen), timeout=4.0)
+            return await asyncio.wait_for(asyncio.to_thread(_gen), timeout=30.0)  # Increased timeout to 30 seconds
         except asyncio.TimeoutError:
             return "I'm still thinking; here is a brief answer while I finish processing."
         except Exception as e:

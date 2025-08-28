@@ -13,3 +13,112 @@ timestamp_iso,session_id,user_message,bot_response,user_audio_file,bot_audio_fil
 2025-08-28T16:09:27.188812,ee105fa5,what is 1 + 1,1 + 1 = 2,N/A,N/A
 2025-08-28T16:09:35.451294,07114b1d,what is the capital of india,The capital of India is **New Delhi**.,N/A,N/A
 2025-08-28T16:09:59.976129,348d7255,[voice message],Error processing audio: ffmpeg or codecs not found. Please install ffmpeg and restart.,user_audio_348d7255.wav,N/A
+2025-08-28T16:16:09.243738,76096f56,who is the captain of indian cricket team,Error generating response: The `response.text` quick accessor only works for simple (single-`Part`) text responses. This response is not simple text.Use the `result.parts` accessor or the full `result.candidates[index].content.parts` lookup instead.,N/A,N/A
+2025-08-28T16:17:45.957814,bef70925,who is the captain of indian cricket teamn in 2025,Error extracting response: The `response.text` quick accessor only works for simple (single-`Part`) text responses. This response is not simple text.Use the `result.parts` accessor or the full `result.candidates[index].content.parts` lookup instead.,N/A,N/A
+2025-08-28T16:20:38.106902,18bd9bd2,who is the captain of indian cricket teamn in 2025,I'm still thinking; here is a brief answer while I finish processing.,N/A,N/A
+2025-08-28T16:24:42.333166,e20fa23b,who is the captain of indian cricket teamn in 2025 ?,"Predicting the captain of the Indian cricket team in 2025 is tricky! It depends on many factors, including:
+
+*   **Rohit Sharma's performance and fitness:** As of now (October 26, 2023), Rohit Sharma is the captain in all formats. If he continues to perform well and remains fit, he *could* still be captain in 2025, although he would be getting older.
+
+*   **Emergence of new leaders:** A strong, capable leader could emerge in the coming years through their performances, leadership qualities, and ability to inspire the team.
+
+*   **Selectors' decisions:** Ultimately, the decision rests with the selectors. They will consider all of the above factors.
+
+**Potential Candidates:**
+
+Given the current situation and speculation, some potential candidates (besides Rohit Sharma) *could* include:
+
+*   **Hardik Pandya:** He has captained India in T20Is and some ODIs, and is seen as a potential leader. However, his fitness and consistency are key.
+
+*   **KL Rahul:** He has captained India in the past, and while his place in the team isn't always guaranteed, he remains a possibility.
+
+*   **Jasprit Bumrah:** Although fast bowlers are not often captains, Bumrah has captained India in a Test match.
+
+*   **Rishabh Pant:** Before his accident, Pant was seen as a future captain. If he recovers fully and regains his form, he could be a contender.
+
+*   **A young player (Unlikely, but possible):** It's possible that a younger player who is not currently a prominent figure could rise through the ranks and establish themselves as a leader.
+
+**In short, it's impossible to say definitively who the captain will be in 2025. It will depend on many evolving factors.**",N/A,N/A
+2025-08-28T16:25:15.105690,8386c418,write a program in js for adding two numbers,"```javascript
+// Method 1: Using a function
+
+function addNumbers(num1, num2) {
+  return num1 + num2;
+}
+
+// Example usage:
+let number1 = 5;
+let number2 = 10;
+let sum = addNumbers(number1, number2);
+console.log(""The sum of "" + number1 + "" and "" + number2 + "" is: "" + sum); // Output: The sum of 5 and 10 is: 15
+
+
+// Method 2:  Directly adding numbers without a function
+
+let a = 20;
+let b = 7;
+let result = a + b;
+console.log(""The sum is: "" + result); // Output: The sum is: 27
+
+
+// Method 3: Using arrow function (more concise)
+
+const add = (x, y) => x + y;
+
+//Example Usage
+let num_1 = 12;
+let num_2 = 8;
+
+console.log(`The sum of ${num_1} and ${num_2} is: ${add(num_1, num_2)}`);  // Output: The sum of 12 and 8 is: 20
+
+
+// Method 4:  Getting input from the user (prompt) -  Requires a browser environment
+
+/*
+let input1 = prompt(""Enter the first number:"");
+let input2 = prompt(""Enter the second number:"");
+
+// Convert the input strings to numbers using parseFloat (or parseInt if you only expect integers)
+let num1 = parseFloat(input1);
+let num2 = parseFloat(input2);
+
+if (isNaN(num1) || isNaN(num2)) {
+  console.log(""Invalid input. Please enter numbers only."");
+} else {
+  let sum = num1 + num2;
+  console.log(""The sum is: "" + sum);
+}
+*/
+
+
+// Explanation and Key improvements:
+
+* **Function Approach:** The `addNumbers` function is the most structured and reusable way to add numbers.  It takes two arguments (the numbers to add) and returns their sum. This is good practice for code organization.
+
+* **Direct Addition:** The second method demonstrates the most basic way to add two numbers directly. This is suitable for simple, one-time additions.
+
+* **Arrow Function:**  The third method uses an arrow function, which is a more concise syntax for defining functions in JavaScript. This is a modern and commonly used approach.
+
+* **Input from User:** The fourth method (commented out because it relies on `prompt` which is browser-specific) shows how to get input from the user. It's important to use `parseFloat` or `parseInt` to convert the input strings to numbers before adding them.  Also includes error handling for non-numeric input.
+
+* **Error Handling:** The `isNaN()` function checks if the input is ""Not a Number"".  This is crucial for handling cases where the user enters text instead of numbers.  Without this check, your program might produce unexpected results (like `NaN`).
+
+* **Output:** All methods clearly print the result to the console using `console.log()`.
+
+* **Template Literals:**  The example with the arrow function uses template literals (backticks ``) to create the output string.  This is generally cleaner than concatenating strings with the `+` operator.
+
+* **`parseFloat` vs. `parseInt`:**
+    * `parseFloat` converts a string to a floating-point number (a number with decimal places).
+    * `parseInt` converts a string to an integer (a whole number).  Choose the appropriate function based on whether you need to handle decimal values or not.
+
+How to run the code:
+
+1. **In a browser's developer console:** Open your browser's developer tools (usually by pressing F12).  Paste any of the above code snippets into the console and press Enter.  The output will be displayed in the console.
+
+2. **In Node.js:**
+   - Save the code to a file (e.g., `add.js`).
+   - Open your terminal or command prompt.
+   - Navigate to the directory where you saved the file using the `cd` command.
+   - Run the code using the command: `node add.js`
+
+3. **Using an online JavaScript editor:**  There are many online JavaScript editors available (e.g., CodePen, JSFiddle, JS Bin).  Paste the code into the editor and run it.",N/A,N/A

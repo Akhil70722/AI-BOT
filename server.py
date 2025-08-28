@@ -61,8 +61,10 @@ PREFERRED_GEMINI_MODELS = [
     "gemini-2.0-flash",
     "gemini-1.5-flash",
 ]
-# Toggle to disable TTS for faster responses
-ENABLE_TTS = False  # Set to False to disable automatic audio generation
+# TTS model for voice integration
+TTS_MODEL = "gemini-2.5-flash-preview-tts"
+# Toggle to enable TTS for voice responses only
+ENABLE_TTS_FOR_VOICE = True  # Enable TTS only for voice input responses
 # ----------------------------
 
 # Create audio logs directory
@@ -163,12 +165,13 @@ class GeminiClient:
             return "Error: Gemini model not initialized. Please check your API key configuration."
         def _gen():
             try:
-                                # Try new API first
+                # Try new API first
                 if hasattr(self, 'client'):
                     try:
                         print(f"Calling new Google GenAI API with prompt: {prompt[:100]}...")
                         # Try different model names in order of preference
                         models_to_try = [
+                            "gemini-2.5-flash",
                             "gemini-2.0-flash-exp",
                             "gemini-2.0-flash",
                             "gemini-1.5-flash"
@@ -288,7 +291,49 @@ speech_recognizer = initialize_speech_recognition()
 tts_engine = initialize_tts()
 gemini_client = GeminiClient(GEMINI_API_KEY, PREFERRED_GEMINI_MODELS, max_tokens=128, temperature=0.7)
 
+# Test TTS model availability
+async def test_tts_model():
+    """Test if the TTS model is available and working"""
+    try:
+        # Ensure Gemini client is initialized
+        await gemini_client.ensure_initialized()
+        
+        if not hasattr(gemini_client, 'client'):
+            print("❌ Gemini client not available for TTS testing")
+            return False
+        
+        print(f"🧪 Testing TTS model: {TTS_MODEL}")
+        
+        # Try a simple test call - TTS model expects AUDIO output, not TEXT
+        test_resp = gemini_client.client.models.generate_content(
+            model=TTS_MODEL,
+            contents=[{
+                "role": "user",
+                "parts": [{"text": "Hello"}]
+            }]
+        )
+        
+        print(f"✅ TTS model test successful: {type(test_resp)}")
+        print(f"📋 TTS response attributes: {dir(test_resp)}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ TTS model test failed: {e}")
+        return False
+
 # Audio processing functions
+def is_websocket_open(websocket):
+    """Safely check if WebSocket connection is still open"""
+    try:
+        return websocket.state.name != 'CLOSED'
+    except AttributeError:
+        # Fallback for different websocket implementations
+        try:
+            return not websocket.closed
+        except AttributeError:
+            # If we can't determine, assume it's open and let the send operation fail naturally
+            return True
+
 def process_audio_data(audio_base64, session_id):
     """Convert base64 audio data to text using Google Speech Recognition, fully in-memory to avoid file locks."""
     try:
@@ -391,6 +436,87 @@ def text_to_speech(text, session_id):
         print(f"Error in text-to-speech: {e}")
         return None, f"Error in text-to-speech: {e}"
 
+async def generate_tts_with_gemini(text, session_id):
+    """Generate TTS using Gemini TTS model"""
+    try:
+        if not hasattr(gemini_client, 'client'):
+            return None, "Error: Gemini client not available for TTS"
+        
+        print(f"Generating TTS with Gemini TTS model: {text[:100]}...")
+        
+        # Use the TTS model for voice generation
+        # Use the correct TTS API format - TTS model expects AUDIO output
+        resp = None
+        try:
+            # Try the new Google GenAI API format for TTS
+            resp = gemini_client.client.models.generate_content(
+                model=TTS_MODEL,
+                contents=[{
+                    "role": "user",
+                    "parts": [{"text": text}]
+                }]
+            )
+            print(f"TTS API call successful")
+        except Exception as e:
+            print(f"TTS API call failed: {e}")
+            # Try alternative format
+            try:
+                resp = gemini_client.client.models.generate_content(
+                    model=TTS_MODEL,
+                    contents=text
+                )
+                print(f"TTS API call successful with alternative format")
+            except Exception as alt_error:
+                print(f"TTS API call failed with alternative format: {alt_error}")
+                return None, f"TTS API call failed: {alt_error}"
+        
+        print(f"TTS response received: {type(resp)}")
+        print(f"TTS response attributes: {dir(resp)}")
+        
+        # Extract audio data from response - try multiple approaches
+        audio_data = None
+        
+        # Method 1: Direct audio attribute
+        if hasattr(resp, 'audio') and resp.audio:
+            audio_data = resp.audio
+            print("Found audio in direct 'audio' attribute")
+        
+        # Method 2: Check candidates structure
+        elif hasattr(resp, 'candidates') and resp.candidates:
+            print(f"Checking {len(resp.candidates)} candidates for audio")
+            for i, candidate in enumerate(resp.candidates):
+                if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                    for j, part in enumerate(candidate.content.parts):
+                        if hasattr(part, 'audio') and part.audio:
+                            audio_data = part.audio
+                            print(f"Found audio in candidate {i}, part {j}")
+                            break
+                    if audio_data:
+                        break
+        
+        if audio_data:
+            # Convert to base64 for transmission
+            audio_base64 = base64.b64encode(audio_data).decode('utf-8')
+            
+            # Save the audio file for logging
+            audio_filename = f"{AUDIO_LOG_DIR}/bot_audio_{session_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
+            try:
+                with open(audio_filename, 'wb') as audio_file:
+                    audio_file.write(audio_data)
+                print(f"Saved TTS audio: {audio_filename}")
+            except Exception as e:
+                print(f"Warning: could not save bot audio log: {e}")
+            
+            return audio_base64, None
+        else:
+            error_msg = f"TTS response has no audio content. Response: {resp}"
+            print(error_msg)
+            return None, error_msg
+            
+    except Exception as e:
+        print(f"Error in Gemini TTS: {e}")
+        return None, f"Error in Gemini TTS: {e}"
+
 # Ensure CSV has header (create if missing or wrong format)
 if not os.path.exists(LOG_FILE):
     with open(LOG_FILE, mode="w", newline="", encoding="utf-8") as f:
@@ -437,8 +563,59 @@ async def handle_connection(websocket):
                     # Try to parse as JSON first (for special commands)
                     data = json.loads(message)
                     if data.get("type") == "tts_request" and data.get("text"):
-                        # Handle TTS request
-                        await process_text_message(websocket, data["text"], session_id, enable_tts=True)
+                        # Handle TTS request with Gemini TTS model
+                        try:
+                            # Generate text response first
+                            bot_text = await gemini_client.generate(data["text"])
+                            bot_text = bot_text.strip() if isinstance(bot_text, str) else str(bot_text)
+                            
+                            if not bot_text:
+                                bot_text = "I couldn't generate a response. Please try again."
+                            
+                            # Generate TTS using Gemini TTS model
+                            audio_base64, tts_error = await generate_tts_with_gemini(bot_text, session_id)
+                            
+                            # Send response with audio
+                            response_data = {
+                                "type": "text",
+                                "content": bot_text,
+                                "session_id": session_id
+                            }
+                            
+                            if audio_base64:
+                                response_data["audio"] = audio_base64
+                            elif tts_error:
+                                response_data["tts_error"] = tts_error
+                            
+                            print(f"Sending TTS response: {response_data}")
+                            await websocket.send(json.dumps(response_data))
+                            
+                            # Log the interaction
+                            def _log_tts_row():
+                                try:
+                                    with open(LOG_FILE, mode="a", newline="", encoding="utf-8") as f:
+                                        writer = csv.writer(f)
+                                        writer.writerow([datetime.now().isoformat(), session_id, data["text"], bot_text, "N/A", f"bot_audio_{session_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav" if audio_base64 else "N/A"])
+                                except Exception as e:
+                                    print(f"Error logging TTS row: {e}")
+                            asyncio.create_task(asyncio.to_thread(_log_tts_row))
+                            
+                        except Exception as e:
+                            error_response = f"Error processing TTS request: {e}"
+                            await websocket.send(json.dumps({
+                                "type": "text",
+                                "content": error_response
+                            }))
+                        continue
+                    elif data.get("type") == "ping":
+                        # Handle keep-alive ping
+                        try:
+                            await websocket.send(json.dumps({
+                                "type": "pong",
+                                "content": "keep-alive-ack"
+                            }))
+                        except Exception as e:
+                            print(f"Error sending pong: {e}")
                         continue
                     elif data.get("type") == "text":
                         # Handle text message from structured format
@@ -479,18 +656,31 @@ async def handle_connection(websocket):
 async def process_text_message(websocket, user_msg, session_id, enable_tts=False):
     """Process text message and generate response"""
     try:
+        # Check if WebSocket is still open before processing
+        if not is_websocket_open(websocket):
+            print(f"❌ WebSocket closed, cannot send response for: {user_msg[:50]}...")
+            return
+            
         bot_text = await gemini_client.generate(user_msg)
         bot_text = bot_text.strip() if isinstance(bot_text, str) else str(bot_text)
         if not bot_text:
             bot_text = "I couldn't generate a response. Please try again."
 
-        if not bot_text:
-            bot_text = "I couldn't generate a response. Please try again."
-
-        # Convert text response to speech in a background thread (blocking) only if requested
+        # Convert text response to speech using Gemini TTS if requested
         audio_base64, tts_error = (None, None)
         if enable_tts:
-            audio_base64, tts_error = await asyncio.to_thread(text_to_speech, bot_text, session_id)
+            try:
+                print(f"Generating TTS for voice response: {bot_text[:100]}...")
+                # Try Gemini TTS first
+                audio_base64, tts_error = await generate_tts_with_gemini(bot_text, session_id)
+                if tts_error:
+                    print(f"Gemini TTS failed, falling back to local TTS: {tts_error}")
+                    # Fallback to local TTS
+                    audio_base64, tts_error = await asyncio.to_thread(text_to_speech, bot_text, session_id)
+            except Exception as e:
+                print(f"Error with Gemini TTS, using local TTS: {e}")
+                # Fallback to local TTS
+                audio_base64, tts_error = await asyncio.to_thread(text_to_speech, bot_text, session_id)
         
         # Get audio filenames for logging
         user_audio_file = "N/A"  # Text input, no audio
@@ -524,14 +714,47 @@ async def process_text_message(websocket, user_msg, session_id, enable_tts=False
             response_data["tts_error"] = tts_error
         
         print(f"Sending response: {response_data}")
-        await websocket.send(json.dumps(response_data))
+        
+        # Check if WebSocket is still open before sending
+        if not is_websocket_open(websocket):
+            print(f"❌ WebSocket closed before sending response for: {user_msg[:50]}...")
+            return
+            
+        try:
+            await websocket.send(json.dumps(response_data))
+            print(f"✅ Response sent successfully to WebSocket")
+        except Exception as send_error:
+            print(f"❌ Error sending response to WebSocket: {send_error}")
+            # Try to send just the text if the full response fails
+            try:
+                if is_websocket_open(websocket):
+                    simple_response = {
+                        "type": "text",
+                        "content": bot_text,
+                        "session_id": session_id
+                    }
+                    await websocket.send(json.dumps(simple_response))
+                    print(f"✅ Simple response sent successfully")
+                else:
+                    print(f"❌ WebSocket closed, cannot send simple response")
+            except Exception as simple_error:
+                print(f"❌ Simple response also failed: {simple_error}")
         
     except Exception as e:
         bot_text = f"Error generating response: {e}"
-        await websocket.send(json.dumps({
-            "type": "text",
-            "content": bot_text
-        }))
+        print(f"❌ Error in process_text_message: {e}")
+        
+        # Only try to send error if WebSocket is still open
+        if is_websocket_open(websocket):
+            try:
+                await websocket.send(json.dumps({
+                    "type": "text",
+                    "content": bot_text
+                }))
+            except Exception as send_error:
+                print(f"❌ Could not send error response: {send_error}")
+        else:
+            print(f"❌ WebSocket closed, cannot send error response")
 
 async def process_audio_message(websocket, audio_data, session_id):
     """Process audio message and generate response"""
@@ -559,8 +782,10 @@ async def process_audio_message(websocket, audio_data, session_id):
             }))
             return
         
-        # Process the transcribed text
-        await process_text_message(websocket, transcribed_text, session_id, enable_tts=False)
+        print(f"🔄 Processing transcribed text: {transcribed_text}")
+        # Process the transcribed text with TTS enabled for voice responses
+        await process_text_message(websocket, transcribed_text, session_id, enable_tts=ENABLE_TTS_FOR_VOICE)
+        print(f"✅ Voice message processing completed")
         
     except Exception as e:
         error_response = f"Error processing audio: {e}"
@@ -579,6 +804,16 @@ async def main():
     
     if tts_engine is None:
         print("Warning: TTS engine not initialized. Text-to-speech will not work.")
+    
+    # Test TTS model availability
+    print("Testing TTS model availability...")
+    # Wait for Gemini client to initialize first
+    await gemini_client.ensure_initialized()
+    tts_available = await test_tts_model()
+    if tts_available:
+        print("✅ TTS model is available and working")
+    else:
+        print("❌ TTS model is not available - voice responses will not have audio")
     
     # Increase max_size to support voice blobs and set robust ping settings
     async with websockets.serve(

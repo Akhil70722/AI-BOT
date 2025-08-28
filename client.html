@@ -235,17 +235,17 @@
     </div>
     
     <div class="controls">
-      <button onclick="clearChat()">Clear Chat</button>
-      <button onclick="exportChat()">Export Chat</button>
-      <button onclick="reconnect()">Reconnect</button>
-      <button onclick="downloadAudioLogs()">Download Audio Logs</button>
+      <button type="button" onclick="clearChat()">Clear Chat</button>
+      <button type="button" onclick="exportChat()">Export Chat</button>
+      <button type="button" onclick="reconnect()">Reconnect</button>
+      <button type="button" onclick="downloadAudioLogs()">Download Audio Logs</button>
     </div>
     
     <div class="input-container">
       <input id="msg" placeholder="Type your message here..." onkeypress="handleKeyPress(event)"/>
-      <button onclick="sendMessage()" id="sendBtn">Send</button>
-      <button onclick="startRecording()" id="recordBtn" class="voice-btn">🎤</button>
-      <button onclick="stopRecording()" id="stopBtn" class="voice-btn" style="display: none;">⏹️</button>
+      <button type="button" onclick="sendMessage()" id="sendBtn">Send</button>
+      <button type="button" onclick="startRecording()" id="recordBtn" class="voice-btn">🎤</button>
+      <button type="button" onclick="stopRecording()" id="stopBtn" class="voice-btn" style="display: none;">⏹️</button>
       <div class="voice-status" id="voiceStatus"></div>
     </div>
     
@@ -269,6 +269,7 @@
     let audioContext = null;
     let sessionId = null;
     let clientAudioLogs = [];
+    let keepAliveInterval = null;
     // Persisted messages stored as array of {role: 'user'|'bot'|'error', text: string}
     let persistedMessages = [];
 
@@ -351,15 +352,23 @@
             if (data.type === "text" && data.content) {
               console.log("Adding text message:", data.content);
               addMessage(data.content, "bot");
+              // Reset voice processing state
+              isProcessingVoice = false;
             } else if (data.content) {
               console.log("Adding content message:", data.content);
               addMessage(data.content, "bot");
+              // Reset voice processing state
+              isProcessingVoice = false;
             } else if (data.type === "text") {
               console.log("Adding text type message:", data);
               addMessage(String(data), "bot");
+              // Reset voice processing state
+              isProcessingVoice = false;
             } else {
               console.log("Adding fallback message:", data);
               addMessage(JSON.stringify(data), "bot");
+              // Reset voice processing state
+              isProcessingVoice = false;
             }
             
             if (data.audio) {
@@ -533,51 +542,133 @@
       URL.revokeObjectURL(url);
     }
     
-    // Voice recording functions
+    // Voice recording functions using Web Speech API
     let recordingStartTime = 0;
-    async function startRecording() {
+    let isProcessingVoice = false;
+    let recognition = null;
+    let isListening = false;
+    
+    // Initialize Web Speech API
+    function initializeSpeechRecognition() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
+        // Check if Web Speech API is supported
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+          console.error('Web Speech API not supported');
+          alert('Web Speech API not supported in this browser. Please use Chrome or Edge.');
+          return false;
+        }
         
-        mediaRecorder.ondataavailable = function(event) {
-          audioChunks.push(event.data);
+        // Create speech recognition instance
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        
+        // Configure recognition settings
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+        recognition.maxAlternatives = 1;
+        
+        // Set up event handlers
+        recognition.onstart = function() {
+          console.log('Speech recognition started');
+          isListening = true;
+          updateVoiceUI();
+          document.getElementById("voiceStatus").textContent = "Listening...";
         };
         
-        mediaRecorder.onstop = function() {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        recognition.onresult = function(event) {
+          const transcript = event.results[0][0].transcript;
+          console.log('Speech recognized:', transcript);
           
-          const audioLog = {
-            timestamp: new Date().toISOString(),
-            type: 'user_recording',
-            duration: Date.now() - recordingStartTime,
-            size: audioBlob.size
-          };
-          clientAudioLogs.push(audioLog);
+          // Stop listening
+          recognition.stop();
+          isListening = false;
+          updateVoiceUI();
           
-          sendAudioMessage(audioBlob);
-          stream.getTracks().forEach(track => track.stop());
+          // Send the transcribed text directly
+          sendVoiceMessage(transcript);
         };
         
-        recordingStartTime = Date.now();
-        mediaRecorder.start();
-        isRecording = true;
-        updateVoiceUI();
-        document.getElementById("voiceStatus").textContent = "Recording...";
+        recognition.onerror = function(event) {
+          console.error('Speech recognition error:', event.error);
+          isListening = false;
+          updateVoiceUI();
+          document.getElementById("voiceStatus").textContent = `Error: ${event.error}`;
+          
+          if (event.error === 'no-speech') {
+            alert('No speech detected. Please try again.');
+          } else if (event.error === 'audio-capture') {
+            alert('Microphone access denied. Please check permissions.');
+          } else {
+            alert(`Speech recognition error: ${event.error}`);
+          }
+        };
+        
+        recognition.onend = function() {
+          console.log('Speech recognition ended');
+          isListening = false;
+          updateVoiceUI();
+          document.getElementById("voiceStatus").textContent = "";
+        };
+        
+        console.log('Web Speech API initialized successfully');
+        return true;
         
       } catch (error) {
-        console.error("Error starting recording:", error);
-        alert("Error accessing microphone. Please check permissions.");
+        console.error('Error initializing Web Speech API:', error);
+        alert('Failed to initialize speech recognition. Please try refreshing the page.');
+        return false;
+      }
+    }
+    
+    // Prevent page unload during voice processing
+    window.addEventListener('beforeunload', function(e) {
+      if (isProcessingVoice) {
+        e.preventDefault();
+        e.returnValue = 'Voice message is being processed. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });
+    
+    // Prevent form submission and page reloads
+    document.addEventListener('submit', function(e) {
+      e.preventDefault();
+      console.log('Form submission prevented');
+    });
+    
+    // Prevent any default button actions that might cause page reload
+    document.addEventListener('click', function(e) {
+      if (e.target.tagName === 'BUTTON' && e.target.type === 'submit') {
+        e.preventDefault();
+        console.log('Button submission prevented');
+      }
+    });
+    
+    async function startRecording() {
+      if (!recognition) {
+        if (!initializeSpeechRecognition()) {
+          return;
+        }
+      }
+      
+      try {
+        if (isListening) {
+          recognition.stop();
+          return;
+        }
+        
+        recordingStartTime = Date.now();
+        recognition.start();
+        
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
+        alert("Error starting speech recognition. Please try again.");
       }
     }
     
     function stopRecording() {
-      if (mediaRecorder && isRecording) {
-        mediaRecorder.stop();
-        isRecording = false;
-        updateVoiceUI();
-        document.getElementById("voiceStatus").textContent = "Processing...";
+      if (recognition && isListening) {
+        recognition.stop();
       }
     }
     
@@ -585,7 +676,7 @@
       const recordBtn = document.getElementById("recordBtn");
       const stopBtn = document.getElementById("stopBtn");
       
-      if (isRecording) {
+      if (isListening) {
         recordBtn.style.display = "none";
         stopBtn.style.display = "flex";
         stopBtn.classList.add("recording");
@@ -596,27 +687,49 @@
       }
     }
     
-    function sendAudioMessage(audioBlob) {
+    function sendVoiceMessage(transcript) {
       if (!isConnected) {
         alert("Not connected to server. Please wait for connection or click Reconnect.");
         return;
       }
       
       try {
-        ws.send(audioBlob);
-        document.getElementById("voiceStatus").textContent = "Audio sent, waiting for response...";
+        // Set processing state
+        isProcessingVoice = true;
         
-        const typingDiv = document.createElement("div");
-        typingDiv.className = "message bot-message typing";
-        typingDiv.textContent = "Processing your voice message...";
-        typingDiv.id = "typing";
-        document.getElementById("chat").appendChild(typingDiv);
-        document.getElementById("chat").scrollTop = document.getElementById("chat").scrollHeight;
+        // Add user message to chat
+        addMessage(transcript, "user");
+        
+        // Check WebSocket state before sending
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          // Send as text message instead of audio
+          ws.send(JSON.stringify({
+            type: "text",
+            content: transcript
+          }));
+          
+          document.getElementById("voiceStatus").textContent = "Voice message sent, waiting for response...";
+          
+          const typingDiv = document.createElement("div");
+          typingDiv.className = "message bot-message typing";
+          typingDiv.textContent = "Processing your voice message...";
+          typingDiv.id = "typing";
+          document.getElementById("chat").appendChild(typingDiv);
+          document.getElementById("chat").scrollTop = document.getElementById("chat").scrollHeight;
+          
+          console.log("Voice message sent successfully:", transcript);
+        } else {
+          console.error("WebSocket not ready, current state:", ws ? ws.readyState : "null");
+          alert("Connection not ready. Please wait for connection or click Reconnect.");
+          document.getElementById("voiceStatus").textContent = "";
+          isProcessingVoice = false;
+        }
         
       } catch (error) {
-        console.error("Error sending audio:", error);
-        addMessage("Error sending audio message. Please try reconnecting.", "error");
+        console.error("Error sending voice message:", error);
+        addMessage("Error sending voice message. Please try reconnecting.", "error");
         document.getElementById("voiceStatus").textContent = "";
+        isProcessingVoice = false;
       }
     }
     

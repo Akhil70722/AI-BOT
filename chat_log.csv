@@ -122,3 +122,78 @@ How to run the code:
    - Run the code using the command: `node add.js`
 
 3. **Using an online JavaScript editor:**  There are many online JavaScript editors available (e.g., CodePen, JSFiddle, JS Bin).  Paste the code into the editor and run it.",N/A,N/A
+2025-08-28T16:37:15.951552,71052e4e,[voice message],Error processing audio: ffmpeg or codecs not found. Please install ffmpeg and restart.,user_audio_71052e4e.wav,N/A
+2025-08-28T16:39:23.170676,003c6919,[voice message],Error processing audio: ffmpeg or codecs not found. Please install ffmpeg and restart.,user_audio_003c6919.wav,N/A
+2025-08-28T16:39:35.517406,713f55ab,[voice message],Error processing audio: ffmpeg or codecs not found. Please install ffmpeg and restart.,user_audio_713f55ab.wav,N/A
+2025-08-28T16:39:54.967375,7a036565,[voice message],Error processing audio: ffmpeg or codecs not found. Please install ffmpeg and restart.,user_audio_7a036565.wav,N/A
+2025-08-28T16:42:40.800580,ade82d06,capital of India,Error generating response: received 1001 (going away); then sent 1001 (going away),N/A,N/A
+2025-08-28T16:43:11.456923,1e553562,what is the capital of India,Error generating response: received 1001 (going away); then sent 1001 (going away),N/A,N/A
+2025-08-28T16:43:26.765746,a7b85640,[voice message],Error processing audio: ,user_audio_a7b85640.wav,N/A
+2025-08-28T16:48:51.570596,591c2ad3,what is the capital of India,Error generating response: received 1001 (going away); then sent 1001 (going away),N/A,N/A
+2025-08-28T16:51:14.360577,fe5bdf84,who is the Prime Minister of India,Error generating response: received 1001 (going away); then sent 1001 (going away),N/A,N/A
+2025-08-28T16:55:17.032124,183df4b5,current Prime Minister of India,Error generating response: received 1001 (going away); then sent 1001 (going away),N/A,bot_audio_183df4b5_20250828_165517.wav
+2025-08-28T17:07:04.970814,52dde431,[voice message],Error processing audio: ,user_audio_52dde431.wav,N/A
+2025-08-28T17:07:12.630943,52dde431,capital of India,The capital of India is New Delhi.,N/A,bot_audio_52dde431_20250828_170712.wav
+2025-08-28T17:10:41.284762,cdbada51,president of India,Error generating response: received 1001 (going away); then sent 1001 (going away),N/A,bot_audio_cdbada51_20250828_171041.wav
+2025-08-28T17:12:40.092063,79c3200e,capital of Australia,The capital of Australia is **Canberra**.,N/A,bot_audio_79c3200e_20250828_171240.wav
+2025-08-28T17:21:13.458382,762ee8c6,who is Mukesh Ambani,I couldn't generate a response. Please try again.,N/A,bot_audio_762ee8c6_20250828_172113.wav
+2025-08-28T17:22:18.446712,b9de6041,who is mukesh ambani,"**Mukesh Dhirubhai Ambani** is a prominent Indian billionaire businessman. He is best known as the **Chairman and Managing Director of Reliance Industries Limited (RIL)**, India's most valuable company by market capitalization.
+
+Here's a breakdown of who he is:
+
+1.  **Leader of Reliance Industries:** Under his leadership, Reliance has transformed from a traditional textile and polyester company into a sprawling conglomerate with diverse interests.
+2.  **Key Business Verticals:**
+    *   **Energy & Petrochemicals:** RIL's traditional stronghold lies in refining and petrochemicals, operating the world's largest oil refinery at Jamnagar, Gujarat.
+    *   **Telecommunications (Jio Platforms):** Mukesh Ambani is widely credited for spearheading the launch of **Jio Platforms (Reliance Jio Infocomm Limited)**, which revolutionized India's telecom sector by offering affordable 4G and later 5G services and data. Jio rapidly became the largest mobile network operator in India.
+    *   **Retail (Reliance Retail):** Reliance Retail is India's largest retail chain, spanning various formats from groceries and fashion to electronics and jewellery.
+    *   **Digital Services & Media:** The group is also making significant strides in digital services, media (JioCinema, Viacom18), and increasingly, in new energy initiatives.
+3.  **Background & Family:**
+    *   He is the elder son of the legendary Indian industrialist **Dhirubhai Ambani**, who founded Reliance Industries.
+    *   Following Dhirubhai's demise in 2002, the family business was divided between Mukesh and his younger brother Anil Ambani, with Mukesh taking control of the core oil and gas, petrochemical, refining, and manufacturing operations.
+    *   He is married to Nita Ambani, and they have three children: Akash, Isha, and Anant, all of whom are involved in the family business.
+4.  **Wealth & Influence:** Mukesh Ambani is consistently ranked among the wealthiest people in the world and often as the richest person in Asia and India. He wields immense influence over the Indian economy and global business landscape.
+5.  **Notable Mentions:** His residence, Antilia, in Mumbai, is one of the world's most expensive private homes.
+
+In essence, Mukesh Ambani is not just a businessman but a visionary who has significantly shaped India's economic trajectory, particularly in the digital, retail, and energy sectors, driving innovation and expanding access to technology for millions.",N/A,N/A
+2025-08-28T17:22:45.912247,0426df68,2+6 - 3 * 1000 / 5,"Let's break this down using the order of operations (PEMDAS/BODMAS):
+
+1.  **Multiplication:**
+    3 * 1000 = 3000
+
+2.  **Division:**
+    3000 / 5 = 600
+
+3.  **Addition:**
+    2 + 6 = 8
+
+4.  **Subtraction:**
+    8 - 600 = -592
+
+So, 2 + 6 - 3 * 1000 / 5 = **-592**",N/A,N/A
+2025-08-28T17:26:05.181245,4f84092b,who is Sunil Chhetri,"**Sunil Chhetri** is a professional Indian footballer who is widely regarded as one of the greatest football players India has ever produced. He is an iconic figure in Indian sports.
+
+Here's a breakdown of who he is and why he's so significant:
+
+1.  **Captain & Striker:** He plays as a striker and captains both the Indian national football team (often nicknamed the ""Blue Tigers"") and Bengaluru FC in the Indian Super League (ISL).
+
+2.  **Prolific Goal Scorer:**
+    *   He is the **all-time leading goal scorer for the Indian national team**, and also their most-capped player.
+    *   Internationally, he holds the record as the **third most active male international goalscorer**, only behind Cristiano Ronaldo and Lionel Messi. This places him in an elite global company for international goals.
+    *   He is also the **all-time top goalscorer in the Indian Super League (ISL)**.
+
+3.  **Longevity and Consistency:** Chhetri has been playing at the top level for nearly two decades, maintaining an incredible level of performance and fitness well into his late 30s.
+
+4.  **Club Career:** He has played for several prominent Indian clubs like Mohun Bagan, JCT, East Bengal, and Dempo. However, he is most synonymous with **Bengaluru FC**, which he joined in 2013, leading them to multiple I-League titles, ISL titles, and various other domestic cups. He also had brief stints abroad with Kansas City Wizards (MLS) and Sporting CP B (Portugal).
+
+5.  **National Team Success:** Under his captaincy, India has achieved notable successes, including winning the AFC Challenge Cup in 2008 (which qualified India for the 2011 AFC Asian Cup), multiple SAFF Championships, and the Intercontinental Cup.
+
+6.  **Awards and Recognition:** His achievements have earned him numerous accolades:
+    *   **Arjuna Award** (2011) – India's second-highest sporting honor.
+    *   **Padma Shri** (2019) – India's fourth-highest civilian award.
+    *   **Major Dhyan Chand Khel Ratna Award** (2021) – India's highest sporting honor. He was the first footballer to receive this prestigious award.
+    *   He has been named the **AIFF Player of the Year** a record seven times (2007, 2011, 2013, 2014, 2017, 2018–19, 2021–22).
+
+7.  **Legacy:** Often referred to as ""Captain Fantastic,"" Sunil Chhetri is more than just a player; he's an ambassador for Indian football, inspiring a generation with his dedication, professionalism, and consistent performance. He has played a crucial role in raising the profile and popularity of football in India.",N/A,bot_audio_4f84092b_20250828_172602.wav
+2025-08-28T17:28:23.010954,048dedc7,who is the president of India,"The current President of India is **Droupadi Murmu**.
+
+She assumed office on July 25, 2022, becoming the 15th President of India. She is also the first tribal president and the second woman to hold the office.",N/A,N/A
